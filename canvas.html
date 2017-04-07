@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>canvas</title>
+    <script src="js/shape.js"></script>
+    <script src="js/jquery.min.js"></script>
+</head>
+
+<style>
+    body,ul,li{
+        margin: 0;padding: 0;list-style: none;
+    }
+    .canvas{
+        width: 900px;height: 500px;
+        position: fixed;
+        top:0;bottom: 0;
+        left:0;right: 0;margin: auto;
+        border: 1px solid antiquewhite;
+        box-shadow: 0 0 5px 3px slateblue;
+    }
+    .menu{
+        width: 100%;height: 40px;background: darkgrey;
+    }
+    .menu a{
+        display: block;float: left;text-decoration: none;
+        width: 14.28571%;height: 100%;box-sizing: border-box;
+        color: #0a0a0a;font-size: 24px;text-align: center;line-height: 40px;
+    }
+    .menu a:hover{
+        color: red;font-weight: 400;
+    }
+    .menu .first{
+        color: red;font-weight: 600;background: grey;
+    }
+
+    .main{
+        width: 100%;height: 460px;
+    }
+    .main .left{
+        width: 150px;height: 100%;float: left;background: ghostwhite;
+        border-right: 1px dashed #0a0a0a;
+    }
+    .opt{
+        width: 100%;height: auto;display: none;
+    }
+    .opt:nth-child(1){
+        display: block;
+    }
+    .opt li{
+        width: 100%;height: 35px;text-align: center;line-height: 35px;
+        font-size: 20px;color: #2b542c;cursor: pointer;
+        border-bottom: 1px dashed #0a0a0a;
+    }
+
+    .main .right{
+        width: 749px;height: 100%;float: left;
+        position: relative;
+    }
+    .copy{
+        width: 100%;height: 100%;
+        position: absolute;
+        top: 0;left: 0;
+        z-index: 10;
+    }
+    .xp{
+        width: 10px;height: 10px;border: 1px solid #000;
+        position: absolute;top:0;left:0;display: none;
+    }
+
+
+</style>
+
+<script>
+    window.onload=function () {
+        var canvas=document.getElementsByTagName("canvas")[0];
+        var copy=document.querySelector(".copy");
+
+        var cobj=canvas.getContext("2d");
+
+        //实现菜单
+        $(".menu a").click(function () {
+            var index=$(this).index(".menu a");
+            $(".opt").css("display","none").eq(index).css("display","block");
+            $(".menu a").css({"background":"none","color":"#0a0a0a","font-weight":"400"}).eq(index).css({"background":"grey","color":"red","font-weight":"600"})
+        })
+
+        $(".opt li").click(function () {
+            var index=$(this).index(".opt li");
+            $(".opt li").css("background","none").eq(index).css("background","darksalmon");
+            $(this).css("color","green");
+        })
+        
+        var shapeObj=new shape(canvas,copy,cobj);
+
+        //实现绘制图形的功能
+        $(".draw li").click(function(){
+            shapeObj.type=$(this).attr("data-role");
+            if(shapeObj.type=="pen"){
+                shapeObj.pen()
+            }else if(shapeObj.type=="bian"){
+                shapeObj.bianNum=prompt("请输入边数",5);
+                shapeObj.draw();
+            }else if(shapeObj.type=="jiao"){
+                shapeObj.jiaoNum=prompt("请输入数",5);
+                shapeObj.draw();
+            }else {
+                shapeObj.draw();
+            }
+        })
+
+        //实现更改绘制图形类型
+        $(".style li").click(function(){
+            shapeObj.style = $(this).attr("data-role");
+            shapeObj.draw();
+        })
+
+        //实现颜色更改
+        $(".color input").change(function(){
+            shapeObj[$(this).attr("data-role")]=$(this).val();
+            shapeObj.draw();
+        })
+
+        //实现设置线条宽度
+        $(".line li:not(input)").click(function(){
+            shapeObj.lineWidth=$(this).attr("data-role");
+            shapeObj.draw();
+        });
+        $(".line input").change(function(){      //change() 当值发生改变，并且失去焦点时触发事件      //keydown   keyup事件     oninput() 当值发生改变时触发事件     setInterval(funcyion(){},50)
+            shapeObj.lineWidth=$(this).val();
+            shapeObj.draw();
+        })
+        /*
+
+        输入;键盘 鼠标 音频等
+        输出：
+
+         */
+
+        //实现设置橡皮功能
+        var xp=$(".xp");
+        $(".xpOpt").click(function () {
+            shapeObj.xp(xp);
+        })
+        $(".xp1 li:not(input)").click(function(){
+            shapeObj.xpsize=$(this).attr("data-role");
+        });
+
+
+        //消除橡皮
+        $(".menu a:not(.xpOpt)").click(function () {
+            $(".xp").css("display","none");
+            copy.onmousemove=null;
+            copy.onmousedown=null;
+        })
+
+        $(".xp1 input")[0].oninput=function(){
+            shapeObj.xpsize=$(this).val();
+            $(".xp").css({
+                width:shapeObj.xpsize,
+                height:shapeObj.xpsize,
+            })
+        }
+
+
+        /*文件*/
+        $(".file li").click(function(){
+            var index=$(this).index(".file li");
+            if(index==0){  //新建
+                if(shapeObj.historyArr.length>0){
+                    var yes=confirm("是否需要保存?");
+                    if(yes){
+                        location.href=canvas.toDataURL().replace("data:image/png", "data:stream/octet");
+                    }
+                    cobj.clearRect(0,0,canvas.width,canvas.height);
+                    shapeObj.historyArr=[];
+                }
+            }else if(index==1){//返回
+                if(shapeObj.historyArr.length==0){
+                    cobj.clearRect(0,0,canvas.width,canvas.height);
+                    setTimeout(function(){
+                        alert("没有历史记录");
+                    },300)
+                }else{
+                    if(shapeObj.firstBack){
+                        if(shapeObj.historyArr.length==1){
+                            shapeObj.historyArr.pop();
+                            cobj.clearRect(0,0,canvas.width,canvas.height)
+                        }
+                        shapeObj.historyArr.pop();
+                        cobj.putImageData(shapeObj.historyArr.pop(),0,0)
+                    }else{
+                        cobj.putImageData(shapeObj.historyArr.pop(),0,0)
+                    }
+                    shapeObj.firstBack=false;
+                }
+            }else if(index==2){ //保存
+                location.href=canvas.toDataURL().replace("data:image/png", "data:stream/octet");
+            }else if(index==3){ //重置
+                shapeObj.lineWidth=1;
+                shapeObj.fillStyle="#000";
+                shapeObj.strokeStyle="#000";
+                shapeObj.style="stroke";
+                shapeObj.type="line";
+            }
+        })
+
+
+        //输入文字
+        function wrap(text,initx,inity,width,height){
+            var str=text;
+            var x=initx;
+            for(var i =0;i<str.length;i++){
+                cobj.fillText(str[i],initx,inity);
+                initx+=cobj.measureText(str[i]).width;
+                if(initx>x+width){
+                    initx=x;
+                    inity+=height;
+                }
+            }
+        }
+        var ox,oy;
+        var flag=true;
+        $(".text").click(function(){
+            copy.onmousedown=function(e){
+                if(!flag){
+                    return;
+                }
+                flag=false;
+                ox=e.offsetX;
+                oy=e.offsetY;
+                $(".textarea").css("display","block").css({left:ox,top:oy});
+                setTimeout(function(){
+                    $(".textarea").focus();
+                },0)
+            }
+        })
+        var width=$(".textarea").width();
+        $(".textarea").blur(function(){
+            var val=$(this).val();
+            wrap(val,ox,oy,width,20);
+            $(".textarea").val("").css("display","none");
+            flag=true;
+        })
+
+
+
+
+
+
+
+    }
+
+</script>
+
+<body>
+<div class="canvas">
+    <div class="menu">
+        <a href="javascript:;" class="first">文件</a>
+        <a href="javascript:;">画图</a>
+        <a href="javascript:;">类型</a>
+        <a href="javascript:;">颜色</a>
+        <a href="javascript:;">线条</a>
+        <a href="javascript:;" class="xpOpt">橡皮</a>
+        <a href="javascript:;" class="text">文字</a>
+    </div>
+    <div class="main">
+        <div class="left">
+            <ul class="opt file">
+                <li>新建</li>
+                <li>返回</li>
+                <li>保存</li>
+                <li>重置</li>
+            </ul>
+            <ul class="opt draw">
+                <li data-role="line">画线</li>
+                <li data-role="rect">矩形</li>
+                <li data-role="arc">圆</li>
+                <li data-role="bian">多边形</li>
+                <li data-role="jiao">多角形</li>
+                <li data-role="pen">钢笔</li>
+            </ul>
+            <ul class="opt style">
+                <li data-role="stroke">线条</li>
+                <li data-role="fill">填充</li>
+            </ul>
+            <ul class="opt color">
+                <li>边框
+                    <input type="color"  data-role="strokeStyle">
+                </li>
+                <li>填充
+                    <input type="color"  data-role="fillStyle">
+                </li>
+            </ul>
+            <ul class="opt line">
+                <li data-role="1">细</li>
+                <li data-role="5">中</li>
+                <li data-role="10">粗</li>
+                <li>
+                    <input type="number" value="" placeholder="请输入大小" style="width: 80%">
+                </li>
+            </ul>
+            <ul class="opt xp1">
+                <li data-role="60">大</li>
+                <li data-role="30">中</li>
+                <li data-role="10">小</li>
+                <li>
+                    <input type="number" value="" placeholder="请输入大小" style="width: 80%">
+                </li>
+            </ul>
+            <ul class="opt">
+                <li>编辑文字</li>
+            </ul>
+        </div>
+
+        <div class="right">
+            <div class="copy"></div>
+            <canvas width="750" height="460"></canvas>
+            <div class="xp"></div>
+            <textarea class="textarea" cols="30" rows="10" style="position: absolute;display:none"></textarea>
+        </div>
+    </div>
+</div>
+</body>
+</html>
